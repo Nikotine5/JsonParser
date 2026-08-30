@@ -58,3 +58,36 @@ void test() {
         std::cerr << "JSON Error: " << e.what() << '\n';
     }
 }
+
+
+void test2(std::string fileName) {
+    try 
+    {
+    std::string jsonMessage = readFile(fileName);
+
+    if (jsonMessage.empty()) {
+        std::cerr << "Failed to read JSON content from file" << '\n';
+        return;
+    }
+    
+    JsonParser parser(jsonMessage);
+    JsonValue root = parser.parse();
+    std::cout << "Parsed JSON from file successfully!\n";
+        
+    }
+}
+
+
+std::string readFile(const std::string& filename) {
+    std::ifstream file(filename);
+
+    if (!file.is_open()) {
+        std::cerr << "Failed to open or read file" << '\n';
+        return "";
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
+
