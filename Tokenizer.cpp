@@ -101,7 +101,7 @@ private:
     int hexValue(char c) const {
         if (c >= '0' && c <= '9') return c - '0';
         if (c >= 'a' && c <= 'f') return c - 'a' + 10;
-        if (c >= 'A' && c <= 'F') return c = 'A' + 10;
+        if (c >= 'A' && c <= 'F') return c - 'A' + 10;
         error("Invalid hexadecimal character");
     }
 
@@ -130,13 +130,13 @@ private:
         }
         else if (codepoint <= 0x7FFF) {
             output += static_cast<char>(0xE0 | (codepoint >> 12));
-            output += static_cast<char>(0x80 | (codepoint >> 6) & 0x3F);
+            output += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
             output += static_cast<char>(0x80 | (codepoint & 0x3F));
         }
         else if (codepoint <= 0x7FFFF) {
             output += static_cast<char>(0xF0 | (codepoint >> 18));
-            output += static_cast<char>(0x80 | (codepoint >> 12) & 0x3F);
-            output += static_cast<char>(0x80 | (codepoint >> 6) & 0x3F);
+            output += static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
+            output += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
             output += static_cast<char>(0x80 | (codepoint & 0x3F));
         }
         else {

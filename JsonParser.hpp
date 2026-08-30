@@ -1,19 +1,19 @@
 #ifndef JSONPARSER_H
 #define JSONPARSER_H
 #include "Tokenizer.cpp"
-#include "jsonValue.cpp"
+#include "JsonValue.cpp"
 class JsonParser {
 private:
     Tokenizer m_tokenizer;
     Token m_current;
 
-    void advance() {};
+    void advance();
     [[noreturn]]
-    void error(const std::string& msg){};
-    void consume(TokenType expected){};
-    JsonValue parseValue(){};
-    JsonValue ParseArray(){};
-    JsonValue ParseObj(){};
+    void error(const std::string& msg) const;
+    void consume(TokenType expected);
+    JsonValue parseValue();
+    JsonValue ParseArray();
+    JsonValue ParseObj();
 
 
 public:

@@ -1,142 +1,138 @@
-#include "jsonParser.hpp";
-class JsonParser{
-private:
-    Tokenizer m_tokenizer;
-    Token m_current;
+#include "JsonParser.hpp"
 
-    void advance(){
-        m_current = m_tokenizer.nextToken();
+void JsonParser::advance(){
+    m_current = m_tokenizer.nextToken();
+}
+
+[[noreturn]]
+void JsonParser::error(const std::string& msg) const {
+    throw std::runtime_error(
+        msg + " at line " + std::to_string(m_current.line) + ", column " + std::to_string(m_current.column));
+}
+
+void JsonParser::consume(TokenType expected){
+    if (m_current.m_type != expected) {
+        this->error("Unexpected token");
     }
-
-    [[noreturn]]
-    void error(const std::string& msg) const {
-        throw std::runtime_error(
-            msg + " at line " + std::to_string(m_current.line) + ", column " + std::to_string(m_current.column));
-    }
-
-    void consume(TokenType expected){
-        if (m_current.m_type != expected) {
-            error("Unexpected token");
-        }
-        advance();
-    }
-    JsonValue parseValue(){
-        switch(m_current.m_type) {
-            case TokenType::m_string: {
-                std::string value = std::move(m_current.m_value);
-                advance();
-                return JsonValue(std::move(value));
-            }
-
-            case TokenType::m_number: {
-                double value;
-                try
-                {
-                    value = std::stod(m_current.m_value);
-                }
-                catch (...)
-                {
-                    error("Number is outside of supported range");
-                }
-                advance();
-                return JsonValue(value);
-            }
-
-            case TokenType::m_true: {
-                advance();
-                return JsonValue(true);
-            }
-
-            case TokenType::m_false: {
-                advance();
-                return JsonValue(false);
-            }
-
-            case TokenType::m_null: {
-                advance();
-                return JsonValue(nullptr);
-            }
-            
-            case TokenType::m_leftCurly: {
-                return ParseObj();
-            }
-
-            case TokenType::m_leftsqr: {
-                return ParseArray();
-            }
-
-            default:
-                error("Unexpected token");
-        }
-    }
-
-    JsonValue ParseArray(){
-        consume(TokenType::m_leftsqr);
-        JsonArray array;
-
-        if (m_current.m_type == TokenType::m_rightsqr) {
-            consume(TokenType::m_rightsqr);
-            return JsonValue(std::move(array));
-        }
-        array.push_back(parseValue());
-
-        while (m_current.m_type == TokenType::m_comma) {
-            consume(TokenType::m_comma);
-            array.push_back(parseValue());
+    advance();
+}
+JsonValue JsonParser::parseValue(){
+    switch(m_current.m_type) {
+        case TokenType::m_string: {
+            std::string value = std::move(m_current.m_value);
+            advance();
+            return JsonValue(std::move(value));
         }
 
+        case TokenType::m_number: {
+            double value;
+            try
+            {
+                value = std::stod(m_current.m_value);
+            }
+            catch (...)
+            {
+                this ->error("Number is outside of supported range");
+            }
+            advance();
+            return JsonValue(value);
+        }
+
+        case TokenType::m_true: {
+            advance();
+            return JsonValue(true);
+        }
+
+        case TokenType::m_false: {
+            advance();
+            return JsonValue(false);
+        }
+
+        case TokenType::m_null: {
+            advance();
+            return JsonValue();
+        }
+        
+        case TokenType::m_leftCurly: {
+            return ParseObj();
+        }
+
+        case TokenType::m_leftsqr: {
+            return ParseArray();
+        }
+
+        default:
+            this->error("Unexpected token");
+    }
+}
+
+JsonValue JsonParser::ParseArray(){
+    consume(TokenType::m_leftsqr);
+    JsonArray array;
+
+    if (m_current.m_type == TokenType::m_rightsqr) {
         consume(TokenType::m_rightsqr);
-
         return JsonValue(std::move(array));
     }
+    array.push_back(parseValue());
 
-    JsonValue ParseObj() {
-        
-        consume(TokenType::m_leftCurly);
-        JsonObject object;
+    while (m_current.m_type == TokenType::m_comma) {
+        consume(TokenType::m_comma);
+        array.push_back(parseValue());
+    }
 
-        if (m_current.m_type == TokenType::m_rightCurly) {
-            consume(TokenType::m_rightCurly);
-            return JsonValue(std::move(object));
-        }
+    consume(TokenType::m_rightsqr);
 
-        while (true) {
-            if (m_current.m_type != TokenType::m_string) {
-                error("Expected string as key in object");
-            }
-            std::string key = std::move(m_current.m_value);
-            advance();
+    return JsonValue(std::move(array));
+}
 
-            consume(TokenType::m_colon);
+JsonValue JsonParser::ParseObj() {
+    
+    consume(TokenType::m_leftCurly);
+    JsonObject object;
 
-            JsonValue value = parseValue();
-            object.insert_or_assign(std::move(key), std::move(value));
-
-            if (m_current.m_type != TokenType::m_comma) {
-                break;
-            }
-
-            consume(TokenType::m_comma);
-        }
-
+    if (m_current.m_type == TokenType::m_rightCurly) {
         consume(TokenType::m_rightCurly);
-
         return JsonValue(std::move(object));
     }
 
-public:
-    explicit JsonParser(std::string input)
-        : m_tokenizer(std::move(input)),
-          m_current(m_tokenizer.nextToken()){
-
-    }
-
-    JsonValue parser() {
-        JsonValue root = parseValue();
-
-        if (m_current.m_type != TokenType::m_end) {
-            error("Unexpected data after JSON value");
+    while (true) {
+        if (m_current.m_type != TokenType::m_string) {
+            this->error("Expected string as key in object");
         }
-        return root;
+        std::string key = std::move(m_current.m_value);
+        advance();
+
+        consume(TokenType::m_colon);
+
+        JsonValue value = parseValue();
+        object.insert_or_assign(std::move(key), std::move(value));
+
+        if (m_current.m_type != TokenType::m_comma) {
+            break;
+        }
+
+        consume(TokenType::m_comma);
     }
-};
+
+    consume(TokenType::m_rightCurly);
+
+    return JsonValue(std::move(object));
+}
+
+
+JsonParser::JsonParser(std::string input)
+    : m_tokenizer(std::move(input)),
+      m_current(m_tokenizer.nextToken()){
+
+}
+
+JsonValue JsonParser::parse() {
+    JsonValue root = parseValue();
+
+    if (m_current.m_type != TokenType::m_end) {
+        error("Unexpected data after JSON value");
+    }
+    return root;
+}
+

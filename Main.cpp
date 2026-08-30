@@ -1,6 +1,4 @@
-#include "jsonParser.hpp"
-#include "Tokenizer.cpp"
-#include "jsonValue.cpp"
+#include "JsonParser.hpp"
 #include <stdexcept>
 #include <fstream>
 #include <sstream>
@@ -28,6 +26,26 @@ int main() {
         JsonParser parser(jsonMessage);
         JsonValue root = parser.parse();
         std::cout << "Parsed JSON successfully!\n";
+        JsonObject& rootObj = std::get<JsonObject>(root.value);
+        JsonValue& name = rootObj.at("name");
+        std::string nameStr = std::get<std::string>(name.value);
+        std::cout << "Name: " << nameStr << '\n';
+        JsonValue& homelab = rootObj.at("homelab");
+        JsonObject& homelabObj = std::get<JsonObject>(homelab.value);
+        JsonValue& servers = homelabObj.at("servers");
+        double serversCount = std::get<double>(servers.value);
+        std::cout << "Servers: " << serversCount << '\n';
+        JsonValue& online = homelabObj.at("online");
+        bool onlineStatus = std::get<bool>(online.value);
+        std::cout << "Online: " << (onlineStatus ? "true" : "false") << '\n';
+        JsonValue& services = homelabObj.at("services");
+        JsonArray& servicesArr = std::get<JsonArray>(services.value);
+        std::cout << "Services: ";
+        for (const auto& service : servicesArr) {
+            std::string serviceName = std::get<std::string>(service.value);
+            std::cout << serviceName << " ";
+        }
+        std::cout << '\n';
     }
     catch (const std::exception& e)
     {
