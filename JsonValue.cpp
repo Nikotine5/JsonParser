@@ -8,6 +8,7 @@ using JsonObject = std::map<std::string, JsonValue>;
 
 
 struct JsonValue {
+    
     using Value = std::variant<
         std::nullptr_t,
         bool,

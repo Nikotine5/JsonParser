@@ -6,7 +6,13 @@
 
 
 int main() {
-    std::string jsonMessage = R"(
+    test(); 
+    return 0;
+}
+
+
+void test() {
+        std::string jsonMessage = R"(
     {
         "name": "Niko",
         "homelab": {
@@ -51,5 +57,4 @@ int main() {
     {
         std::cerr << "JSON Error: " << e.what() << '\n';
     }
-    return 0;
 }

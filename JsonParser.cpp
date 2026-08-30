@@ -1,30 +1,44 @@
 #include "JsonParser.hpp"
 
-void JsonParser::advance(){
+void JsonParser::advance()
+{
     m_current = m_tokenizer.nextToken();
 }
 
+
+
 [[noreturn]]
-void JsonParser::error(const std::string& msg) const {
+void JsonParser::error(const std::string& msg) const 
+{
     throw std::runtime_error(
         msg + " at line " + std::to_string(m_current.line) + ", column " + std::to_string(m_current.column));
 }
 
-void JsonParser::consume(TokenType expected){
+
+
+void JsonParser::consume(TokenType expected)
+{
     if (m_current.m_type != expected) {
         this->error("Unexpected token");
     }
+
     advance();
 }
-JsonValue JsonParser::parseValue(){
-    switch(m_current.m_type) {
+
+
+JsonValue JsonParser::parseValue()
+{
+    switch(m_current.m_type) 
+    {
         case TokenType::m_string: {
             std::string value = std::move(m_current.m_value);
             advance();
             return JsonValue(std::move(value));
         }
 
-        case TokenType::m_number: {
+
+        case TokenType::m_number: 
+        {
             double value;
             try
             {
@@ -38,35 +52,47 @@ JsonValue JsonParser::parseValue(){
             return JsonValue(value);
         }
 
-        case TokenType::m_true: {
+
+        case TokenType::m_true: 
+        {
             advance();
             return JsonValue(true);
         }
 
-        case TokenType::m_false: {
+
+        case TokenType::m_false: 
+        {
             advance();
             return JsonValue(false);
         }
 
-        case TokenType::m_null: {
+
+        case TokenType::m_null: 
+        {
             advance();
             return JsonValue();
         }
         
+        //recursive calls to parse nested structures
         case TokenType::m_leftCurly: {
             return ParseObj();
         }
+
 
         case TokenType::m_leftsqr: {
             return ParseArray();
         }
 
+
         default:
             this->error("Unexpected token");
+
     }
 }
 
-JsonValue JsonParser::ParseArray(){
+
+JsonValue JsonParser::ParseArray()
+{
     consume(TokenType::m_leftsqr);
     JsonArray array;
 
@@ -74,7 +100,9 @@ JsonValue JsonParser::ParseArray(){
         consume(TokenType::m_rightsqr);
         return JsonValue(std::move(array));
     }
-    array.push_back(parseValue());
+
+    array.push_back(parseValue());                      //parse the first element of the array
+
 
     while (m_current.m_type == TokenType::m_comma) {
         consume(TokenType::m_comma);
@@ -86,7 +114,9 @@ JsonValue JsonParser::ParseArray(){
     return JsonValue(std::move(array));
 }
 
-JsonValue JsonParser::ParseObj() {
+
+JsonValue JsonParser::ParseObj() 
+{
     
     consume(TokenType::m_leftCurly);
     JsonObject object;
@@ -96,15 +126,15 @@ JsonValue JsonParser::ParseObj() {
         return JsonValue(std::move(object));
     }
 
+
     while (true) {
         if (m_current.m_type != TokenType::m_string) {
             this->error("Expected string as key in object");
         }
+
         std::string key = std::move(m_current.m_value);
         advance();
-
         consume(TokenType::m_colon);
-
         JsonValue value = parseValue();
         object.insert_or_assign(std::move(key), std::move(value));
 
@@ -116,7 +146,6 @@ JsonValue JsonParser::ParseObj() {
     }
 
     consume(TokenType::m_rightCurly);
-
     return JsonValue(std::move(object));
 }
 
@@ -127,12 +156,14 @@ JsonParser::JsonParser(std::string input)
 
 }
 
-JsonValue JsonParser::parse() {
+JsonValue JsonParser::parse() 
+{
     JsonValue root = parseValue();
 
     if (m_current.m_type != TokenType::m_end) {
         error("Unexpected data after JSON value");
     }
+    
     return root;
 }
 
