@@ -1,8 +1,13 @@
 #include "JsonParser.hpp"
+#include "JsonValue.hpp"
 #include <stdexcept>
 #include <fstream>
 #include <sstream>
 #include <iostream>
+
+void test();
+void test2(std::string fileName);
+std::string readFile(const std::string& filename);
 
 
 int main() {
@@ -32,23 +37,23 @@ void test() {
         JsonParser parser(jsonMessage);
         JsonValue root = parser.parse();
         std::cout << "Parsed JSON successfully!\n";
-        JsonObject& rootObj = std::get<JsonObject>(root.value);
-        JsonValue& name = rootObj.at("name");
-        std::string nameStr = std::get<std::string>(name.value);
+        const JsonObject rootObj = root.getObject();
+        JsonValue name = rootObj.at("name");
+        std::string nameStr = name.getString();
         std::cout << "Name: " << nameStr << '\n';
-        JsonValue& homelab = rootObj.at("homelab");
-        JsonObject& homelabObj = std::get<JsonObject>(homelab.value);
-        JsonValue& servers = homelabObj.at("servers");
-        double serversCount = std::get<double>(servers.value);
+        JsonValue homelab = rootObj.at("homelab");
+        const JsonObject homelabObj = homelab.getObject();
+        JsonValue servers = homelabObj.at("servers");
+        double serversCount = servers.getDouble();
         std::cout << "Servers: " << serversCount << '\n';
-        JsonValue& online = homelabObj.at("online");
-        bool onlineStatus = std::get<bool>(online.value);
+        JsonValue online = homelabObj.at("online");
+        bool onlineStatus = online.getBool();
         std::cout << "Online: " << (onlineStatus ? "true" : "false") << '\n';
-        JsonValue& services = homelabObj.at("services");
-        JsonArray& servicesArr = std::get<JsonArray>(services.value);
+        JsonValue services = homelabObj.at("services");
+        JsonArray servicesArr = services.getArray();
         std::cout << "Services: ";
         for (const auto& service : servicesArr) {
-            std::string serviceName = std::get<std::string>(service.value);
+            std::string serviceName = service.getString();
             std::cout << serviceName << " ";
         }
         std::cout << '\n';
@@ -63,17 +68,21 @@ void test() {
 void test2(std::string fileName) {
     try 
     {
-    std::string jsonMessage = readFile(fileName);
+        std::string jsonMessage = readFile(fileName);
 
-    if (jsonMessage.empty()) {
-        std::cerr << "Failed to read JSON content from file" << '\n';
-        return;
-    }
+        if (jsonMessage.empty()) {
+            std::cerr << "Failed to read JSON content from file" << '\n';
+            return;
+        }
     
-    JsonParser parser(jsonMessage);
-    JsonValue root = parser.parse();
-    std::cout << "Parsed JSON from file successfully!\n";
+        JsonParser parser(jsonMessage);
+        JsonValue root = parser.parse();
+        std::cout << "Parsed JSON from file successfully!\n";
         
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "JSON Error: " << e.what() << '\n';
     }
 }
 

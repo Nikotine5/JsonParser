@@ -1,7 +1,7 @@
 #ifndef JSONPARSER_H
 #define JSONPARSER_H
-#include "Tokenizer.cpp"
-#include "JsonValue.cpp"
+#include "Tokenizer.hpp"
+#include "JsonValue.hpp"
 class JsonParser { 
 private:
     Tokenizer m_tokenizer;
