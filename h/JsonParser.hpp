@@ -14,7 +14,7 @@ private:
     JsonValue ParseArray();
     JsonValue ParseObj();
 public:
-    explicit JsonParser(std::string input);
+    explicit JsonParser(std::string_view input);
     JsonValue parse();
 };
 #endif

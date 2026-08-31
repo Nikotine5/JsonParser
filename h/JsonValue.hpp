@@ -21,7 +21,7 @@ using Value = std::variant<
 
 class JsonValue {
 private:
-    Value value;
+    Value m_value;
 public:
     JsonValue();
     explicit JsonValue(bool b);
@@ -40,8 +40,9 @@ public:
     std::string getString() const;
     JsonArray getArray() const;
     JsonObject getObject() const;
+    JsonValue getType() const;
     //template because i want it for smtg but we do that later
-    template<typename T>
-    const T& getValue() const;
+    template<typename Visitor>
+    auto getValue(Visitor&& visitor) const;
 };
 #endif // JSONVALUE_HPP

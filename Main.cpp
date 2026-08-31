@@ -100,3 +100,15 @@ std::string readFile(const std::string& filename) {
     return buffer.str();
 }
 
+std::string writeToFile(const std::string& filename, const JsonValue& content) {
+    std::ofstream file(filename);
+
+    if (!file.is_open()) {
+        std::cerr << "Failed to open or write to file" << '\n';
+        return "";
+    }
+
+    
+
+    return "success";
+}
