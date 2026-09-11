@@ -1,34 +1,28 @@
 #include "Tokenizer.hpp"
 
-char Tokenizer::peek() const {
-    if (position >= input.size()) 
-        return '\0';
-    
-    return input[position];
+int Tokenizer::peek() const {
+    return buffer.peek();
 }
 
-char Tokenizer::peekNext() {
-    if (position + 1 >= input.size()) {
-        return '\0';
+int Tokenizer::peekNext() {
+    return buffer.peekNext();
+}
+
+int Tokenizer::advance() {
+    int value = buffer.advance();
+
+    if (value == -1) {
+        return -1;
     }
-    return input[position + 1];
-}
 
-char Tokenizer::advance() {
-    if (position >= input.size())
-        return '\0';
-
-    char c = input[position++];
-
-    if (c == '\n') {
+    if (value == '\n') {
         line++;
         column = 1;
     }
     else {
         column++;
     }
-
-    return c;
+    return value;
 }
 
 [[noreturn]]
@@ -38,8 +32,8 @@ void Tokenizer::error(const std::string& str) const {
 }
 
 void Tokenizer::skipWhitespace() {
-    while (!(position >= input.size())){
-        char c = peek();
+    while (!(peek() == -1)){
+        int c = peek();
 
         if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
             advance();
@@ -47,18 +41,17 @@ void Tokenizer::skipWhitespace() {
         else {
             break;
         }
-
     }
 }
 
-bool Tokenizer::isHexDigit(char c) const {
+bool Tokenizer::isHexDigit(int c) const {
     return 
         (c >= '0' && c <= '9') || 
         (c >= 'a' && c <= 'f') || 
         (c >= 'A' && c <= 'F');
 }
 
-int Tokenizer::hexValue(char c) const {
+int Tokenizer::hexValue(int c) const {
     if (c >= '0' && c <= '9') return c - '0';
     if (c >= 'a' && c <= 'f') return c - 'a' + 10;
     if (c >= 'A' && c <= 'F') return c - 'A' + 10;
@@ -69,7 +62,7 @@ uint16_t Tokenizer::readHex4() {
     uint16_t value = 0;
 
     for (int i = 0; i < 4; i++) {
-        if (position >= input.size() || !isHexDigit(peek())){
+        if (peek() == -1 || !isHexDigit(peek())){
             error("Expected four hexadecimal digits");
         }
 
@@ -79,7 +72,7 @@ uint16_t Tokenizer::readHex4() {
 }
 
 void Tokenizer::appendUtf8(std::string& output,
-                uint32_t codepoint) 
+                            uint32_t codepoint) 
 {
     if (codepoint <= 0x7F) {
         output += static_cast<char>(codepoint);
@@ -88,12 +81,12 @@ void Tokenizer::appendUtf8(std::string& output,
         output += static_cast<char>(0xC0 | (codepoint >> 6));
         output += static_cast<char>(0x80 | (codepoint & 0x3f));
     }
-    else if (codepoint <= 0x7FFF) {
+    else if (codepoint <= 0xFFFF) {
         output += static_cast<char>(0xE0 | (codepoint >> 12));
         output += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
         output += static_cast<char>(0x80 | (codepoint & 0x3F));
     }
-    else if (codepoint <= 0x7FFFF) {
+    else if (codepoint <= 0x10FFFF) {
         output += static_cast<char>(0xF0 | (codepoint >> 18));
         output += static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
         output += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
@@ -123,7 +116,7 @@ void Tokenizer::readUnicodeEsc(std::string& value) {
 
         //utf-16 low surrogate; DC00 - DFFF
 
-        if (second >= 0xDC00 && second <= 0xDFFF) {
+        if (second < 0xDC00 || second > 0xDFFF) {
             error("Invalid Unicode surrogate pair");
         }
         uint32_t codepoint = 
@@ -170,7 +163,7 @@ Token Tokenizer::readString(size_t startline, size_t startColumn) {
 
         if (c == '\\') {
 
-            if (position >= input.size()){
+            if (peek() == -1){
                 error("Unterminated escape sequence");
             }
 
@@ -190,7 +183,7 @@ Token Tokenizer::readString(size_t startline, size_t startColumn) {
                     break;
                 
                 case 'n':
-                    value += 'n';
+                    value += '\n';
                     break;
 
                 case 't':
@@ -226,25 +219,26 @@ Token Tokenizer::readString(size_t startline, size_t startColumn) {
 }
 
 Token Tokenizer::readNumber(size_t startline, size_t startColumn) {
-    size_t start = position;
+    std::string value;
 
     if (peek() == '-') {
-        advance();
-        if (position >= input.size()) {
+        value += static_cast<char>(advance());
+
+        if (peek() == -1) {
             error("Expected number after '-'");
         }
     }
 
     if (peek() == '0'){
-        advance(); 
+        value += static_cast<char>(advance());
 
-        if (!(position >= input.size()) && std::isdigit(static_cast<unsigned char>(peek()))) {
+        if (peek() >= '0' && peek() <= '9') {
             error("Leading zeros are not allowed");
         }
     }
     else if (peek() >= '1' && peek() <= '9') {
-        while(!(position >= input.size()) && std::isdigit(static_cast<unsigned char>(peek()))) {
-            advance();
+        while(peek() >= '0' && peek() <= '9') {
+            value += static_cast<char>(advance());
         }
     }
     else {
@@ -252,36 +246,36 @@ Token Tokenizer::readNumber(size_t startline, size_t startColumn) {
     }
 
     if (peek() == '.') {
-        advance();
+        value += static_cast<char>(advance());
 
-        if ((position >= input.size()) || !std::isdigit(static_cast<unsigned char>(peek()))) {
+        if (!(peek() >= '0' && peek() <= '9')) {
             error("Expected digit after decimal point");
         }
 
-        while (!(position >= input.size()) && std::isdigit(static_cast<unsigned char>(peek()))) {
-            advance();
+        while (peek() >= '0' && peek() <= '9') {
+            value += static_cast<char>(advance());
         }
     }
 
     if (peek() == 'e' || peek() == 'E') {
-        advance();
+        value += static_cast<char>(advance());
 
         if (peek() == '+' || peek() == '-') {
-            advance();
+            value += static_cast<char>(advance());
         }
 
-        if ((position >= input.size()) || !std::isdigit(static_cast<unsigned char>(peek()))) {
+        if (!(peek() >= '0' && peek() <= '9')) {
             error("Invalid expnent");
         }
 
-        while (!(position >= input.size()) && std::isdigit(static_cast<unsigned char>(peek()))){
-            advance();
+        while (peek() >= '0' && peek() <= '9') {
+            value += static_cast<char>(advance());
         }
     }
 
     return {
         TokenType::m_number,
-        input.substr(start, position - start),
+        value,
         startline,
         startColumn
     };
@@ -289,15 +283,14 @@ Token Tokenizer::readNumber(size_t startline, size_t startColumn) {
 
 void Tokenizer::expectLit(const std::string& lit) {
     for (char expected : lit){
-        if ((position >= input.size()) || peek() != expected) {
+        if ((peek() == -1) || peek() != expected) {
             error("Invalid literal, expected '" + lit + "'");
         }
         advance();
     }
 }
 
-Tokenizer::Tokenizer(const std::string& text) 
-    : input(std::move(text)) {}
+Tokenizer::Tokenizer(int fd) : buffer(fd) {}
 
 Token Tokenizer::nextToken(){
     skipWhitespace();

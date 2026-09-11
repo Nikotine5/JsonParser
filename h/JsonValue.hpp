@@ -38,8 +38,8 @@ public:
     bool getBool() const;
     double getDouble() const;
     std::string getString() const;
-    JsonArray getArray() const;
-    JsonObject getObject() const;
+    JsonArray& getArray();
+    JsonObject& getObject();
     JsonValue getType() const;
     //template because i want it for smtg but we do that later
     template<typename Visitor>

@@ -6,6 +6,7 @@ class JsonParser {
 private:
     Tokenizer m_tokenizer;
     Token m_current;
+    int m_depth = 0;
     void advance();
     [[noreturn]]
     void error(const std::string& msg) const;

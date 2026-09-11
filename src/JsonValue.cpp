@@ -60,7 +60,7 @@ std::string JsonValue::getString() const {
     return std::get<std::string>(m_value);
 }
 
-JsonArray JsonValue::getArray() const {
+JsonArray& JsonValue::getArray() {
 
     if (!isArray()) {
         throw std::invalid_argument("Value is not an array");
@@ -69,7 +69,7 @@ JsonArray JsonValue::getArray() const {
     return std::get<JsonArray>(m_value);
 }
 
-JsonObject JsonValue::getObject() const {
+JsonObject& JsonValue::getObject() {
 
     if (!isObject()) {
         throw std::invalid_argument("Value is not an object");

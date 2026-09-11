@@ -3,8 +3,8 @@ CXXFLAGS = -std=c++23 -Wall -Wextra -Wpedantic -g
 CPPFLAGS = -Ih
 
 TARGET = Parser
-SOURCES = Main.cpp src/JsonParser.cpp src/Tokenizer.cpp src/JsonValue.cpp
-HEADERS = h/JsonParser.hpp h/Tokenizer.hpp h/JsonValue.hpp
+SOURCES = Main.cpp src/JsonParser.cpp src/Tokenizer.cpp src/JsonValue.cpp src/Buffer.cpp
+HEADERS = h/JsonParser.hpp h/Tokenizer.hpp h/JsonValue.hpp h/Buffer.hpp
 
 .PHONY: all clean
 

@@ -7,6 +7,7 @@
 #include <string>
 #include <vector> 
 #include <cctype>
+#include "Buffer.hpp"
 
 enum class TokenType {
     m_leftCurly, 
@@ -38,20 +39,18 @@ struct Token {
 
 class Tokenizer {
 private:
-    std::string input;
-
-    size_t position = 0;
+    Buffer buffer;
     size_t line = 1;
     size_t column = 1;
 
-    char peek() const;
-    char peekNext();
-    char advance();
+    int peek() const;
+    int peekNext();
+    int advance();
     [[noreturn]]
     void error(const std::string& str) const;
     void skipWhitespace();
-    bool isHexDigit(char c) const;
-    int hexValue(char c) const;
+    bool isHexDigit(int c) const;
+    int hexValue(int c) const;
     uint16_t readHex4();
     void appendUtf8(std::string& output, uint32_t codepoint);
     void readUnicodeEsc(std::string& value);
@@ -60,7 +59,7 @@ private:
     void expectLit(const std::string& lit);
 
 public:
-    explicit Tokenizer(const std::string& text);
+    explicit Tokenizer(int fd);
     Token nextToken();
     std::string normalizeTT(TokenType tt);
 };

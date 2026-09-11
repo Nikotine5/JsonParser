@@ -1,30 +1,56 @@
 #include "Buffer.hpp"
+#include <cerrno>
+#include <cstring>
+#include <system_error>
+#include <unistd.h>
 
-Buffer::Buffer(int fd) : m_fd_(fd) {}
+Buffer::Buffer(int fd) : m_buf_(s_capacity), m_fd_(fd) {}
 
-template <class... Args>
-void Buffer::append(std::format_string<Args...> fmt, Args&&... args)
+bool Buffer::ensure(std::size_t n)
 {
-    std::format_to(std::back_inserter(m_buf_), fmt, std::forward<Args>(args)...);
-    if (m_buf_.size() >= g_flushAt) { flush(); }
-}
+    if (m_end_ - m_pos_ >= n) { return true; }
+    if (m_eof_) { return false; }
 
-void Buffer::flush() {
-    const char* ptr = m_buf_.data();
-    size_t left = m_buf_.size();
+    //slide whatever is left over to the front so we can read into the tail
+    if (m_pos_ > 0) {
+        std::size_t left = m_end_ - m_pos_;
+        std::memmove(m_buf_.data(), m_buf_.data() + m_pos_, left);
+        m_pos_ = 0;
+        m_end_ = left;
+    }
 
-    while (left > 0) {
-        ssize_t written = ::write(m_fd_, ptr, left);
+    while (m_end_ - m_pos_ < n && !m_eof_) {
+        ssize_t got = ::read(m_fd_, m_buf_.data() + m_end_, m_buf_.size() - m_end_);
 
-        if (written < 0) {
+        if (got < 0) {
             if (errno == EINTR) continue;
-            throw std::system_error(errno, std::generic_category());
+            throw std::system_error(errno, std::generic_category(), "Buffer::ensure");
         }
 
-        ptr += written;
-        left -= static_cast<size_t>(written);
-        m_buf_.clear();
+        if (got == 0) { m_eof_ = true; break; }
+
+        m_end_ += static_cast<std::size_t>(got);
     }
+
+    return m_end_ - m_pos_ >= n;
 }
 
-Buffer::~Buffer() { try { flush(); } catch(...){} }
+//cast through unsigned char so a UTF-8 byte >0x7F doesn't come back negative
+//and collide with the -1 end-of-input sentinel
+int Buffer::peek()
+{
+    return ensure(1) ? static_cast<unsigned char>(m_buf_[m_pos_]) : -1;
+}
+
+int Buffer::peekNext()
+{
+    return ensure(2) ? static_cast<unsigned char>(m_buf_[m_pos_ + 1]) : -1;
+}
+
+int Buffer::advance()
+{
+    if (!ensure(1)) { return -1; }
+    return static_cast<unsigned char>(m_buf_[m_pos_++]);
+}
+
+bool Buffer::eof() { return !ensure(1); }

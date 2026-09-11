@@ -1,4 +1,5 @@
 #include "JsonParser.hpp"
+#include <charconv>
 
 void JsonParser::advance()
 {
@@ -40,14 +41,7 @@ JsonValue JsonParser::parseValue()
         case TokenType::m_number: 
         {
             double value;
-            try
-            {
-                value = std::stod(m_current.m_value);
-            }
-            catch (...)
-            {
-                this ->error("Number is outside of supported range");
-            }
+            value = std::from_chars(m_current.m_value);
             advance();
             return JsonValue(value);
         }
@@ -75,11 +69,19 @@ JsonValue JsonParser::parseValue()
         
         //recursive calls to parse nested structures
         case TokenType::m_leftCurly: {
+            if (m_depth >= 1000) {
+                this->error("Maximum nesting depth exceeded");
+            }
+            m_depth++;
             return ParseObj();
         }
 
 
         case TokenType::m_leftsqr: {
+            if (m_depth >= 1000) {
+                this->error("Maximum nesting depth exceeded");
+            }
+            m_depth++;
             return ParseArray();
         }
 
@@ -150,8 +152,8 @@ JsonValue JsonParser::ParseObj()
 }
 
 
-JsonParser::JsonParser(std::string input)
-    : m_tokenizer(std::move(input)),
+JsonParser::JsonParser(std::string_view input)
+    : m_tokenizer(std::string(input)),
       m_current(m_tokenizer.nextToken()){
 
 }
