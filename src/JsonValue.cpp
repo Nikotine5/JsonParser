@@ -1,6 +1,37 @@
 #include "JsonValue.hpp"
 #include <stdexcept>
    
+struct overloaded {
+    std::string operator()(std::nullptr_t) const { return std::string("null"); }
+    std::string operator()(bool b) const { return b ? "true" : "false"; }
+    std::string operator()(double d) const { return std::to_string(d); }
+    std::string operator()(const std::string& str) const { return "\"" + str + "\""; }
+    std::string operator()(const JsonArray& arr) const {
+        std::string result = "[";
+        for (size_t i = 0; i < arr.size(); ++i) {
+            result += arr[i].getValue(*this);
+            if (i + 1 < arr.size()) {
+                result += ", ";
+            }
+        }
+        result += "]";
+        return result;
+    }
+    std::string operator()(const JsonObject& obj) const {
+        std::string result = "{";
+        size_t count = 0;
+        for (const auto& [key, value] : obj) {
+            result += "\"" + key + "\": " + value.getValue(*this);
+            if (count + 1 < obj.size()) {
+                result += ", ";
+            }
+            ++count;
+        }
+        result += "}";
+        return result;
+    }
+};
+
 JsonValue::JsonValue() : m_value(nullptr) {}
 JsonValue::JsonValue(bool b) : m_value(b) {}
 JsonValue::JsonValue(double d) : m_value(d) {}
@@ -39,7 +70,6 @@ bool JsonValue::isObject() const {
 
 
 bool JsonValue::getBool() const {
-
     if (!isBool()) {
         throw std::invalid_argument("Value is not a boolean");
     }
@@ -53,7 +83,15 @@ double JsonValue::getDouble() const {
     return std::get<double>(m_value);
 }
 
-std::string JsonValue::getString() const {
+const std::string& JsonValue::getString() const {
+    if (!isString()) {
+        throw std::invalid_argument("Value is not a string");
+    }
+    return std::get<std::string>(m_value);
+}
+
+std::string JsonValue::getString() {
+    
     if (!isString()) {
         throw std::invalid_argument("Value is not a string");
     }
@@ -61,7 +99,14 @@ std::string JsonValue::getString() const {
 }
 
 JsonArray& JsonValue::getArray() {
+    if (!isArray()) {
+        throw std::invalid_argument("Value is not an array");
+    }
+    
+    return std::get<JsonArray>(m_value);
+}
 
+const JsonArray& JsonValue::getArray() const {
     if (!isArray()) {
         throw std::invalid_argument("Value is not an array");
     }
@@ -70,7 +115,6 @@ JsonArray& JsonValue::getArray() {
 }
 
 JsonObject& JsonValue::getObject() {
-
     if (!isObject()) {
         throw std::invalid_argument("Value is not an object");
     }
@@ -78,10 +122,19 @@ JsonObject& JsonValue::getObject() {
     return std::get<JsonObject>(m_value);
 }
 
-template <typename Visitor>
-auto JsonValue::getValue(Visitor&& visitor) const {
-    return std::visit(std::forward<Visitor>(visitor), m_value);
+const JsonObject& JsonValue::getObject() const {
+    if (!isObject()) {
+        throw std::invalid_argument("Value is not an object");
+    }
+    return std::get<JsonObject>(m_value);
 }
+
+std::string JsonValue::toString() const {
+    return std::visit(overloaded{}, m_value);
+}
+
+
+
 
 
 

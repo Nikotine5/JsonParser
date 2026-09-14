@@ -43,7 +43,7 @@ private:
     size_t line = 1;
     size_t column = 1;
 
-    int peek() const;
+    int peek();
     int peekNext();
     int advance();
     [[noreturn]]
@@ -60,6 +60,7 @@ private:
 
 public:
     explicit Tokenizer(int fd);
+    explicit Tokenizer(std::string input);
     Token nextToken();
     std::string normalizeTT(TokenType tt);
 };

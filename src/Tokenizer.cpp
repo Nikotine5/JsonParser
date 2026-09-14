@@ -1,6 +1,6 @@
 #include "Tokenizer.hpp"
 
-int Tokenizer::peek() const {
+int Tokenizer::peek() {
     return buffer.peek();
 }
 
@@ -32,7 +32,7 @@ void Tokenizer::error(const std::string& str) const {
 }
 
 void Tokenizer::skipWhitespace() {
-    while (!(peek() == -1)){
+    while (peek() != -1){
         int c = peek();
 
         if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
@@ -143,9 +143,9 @@ Token Tokenizer::readString(size_t startline, size_t startColumn) {
 
     advance(); //consume opening
 
-    while (peek() != '\0') {
+    while (peek() != -1) {
 
-        char c = advance();
+        int c = advance();
 
         if (c == '"') {
             return {
@@ -167,7 +167,7 @@ Token Tokenizer::readString(size_t startline, size_t startColumn) {
                 error("Unterminated escape sequence");
             }
 
-            char escaped = advance();
+            int escaped = advance();
 
             switch (escaped) {
                 case '"':
@@ -292,14 +292,16 @@ void Tokenizer::expectLit(const std::string& lit) {
 
 Tokenizer::Tokenizer(int fd) : buffer(fd) {}
 
+Tokenizer::Tokenizer(std::string input) : buffer(std::move(input)) {}
+
 Token Tokenizer::nextToken(){
     skipWhitespace();
     size_t startline = line;
     size_t startColumn = column;
 
-    char current = peek();
+    int current = peek();
 
-    if (current == '\0') {
+    if (current == -1) {
         return {
             TokenType::m_end,
             "",
@@ -367,7 +369,7 @@ Token Tokenizer::nextToken(){
             return readString(startline, startColumn);
     }
 
-    if (current == '-' || std::isdigit(static_cast<unsigned char>(current))) {
+    if (current == '-' || std::isdigit(current)) {
         return readNumber(startline, startColumn);
     }
 
@@ -401,7 +403,7 @@ Token Tokenizer::nextToken(){
         };
     }
 
-    error(std::string("Unexpected character '") + current + "'");
+    error(std::string("Unexpected character '") + static_cast<char>(current) + "'");
 }
 
 std::string Tokenizer::normalizeTT(TokenType tt) {

@@ -6,6 +6,17 @@
 
 Buffer::Buffer(int fd) : m_buf_(s_capacity), m_fd_(fd) {}
 
+//takes ownership of the string's bytes; nothing left to read from an fd, so
+//eof is true from the start and ensure() never enters its read loop
+Buffer::Buffer(std::string data)
+    : m_buf_(data.begin(), data.end()),
+      m_end_(m_buf_.size()),
+      m_fd_(-1),
+      m_eof_(true)
+{}
+
+Buffer::~Buffer() {if (m_fd_ >= 0) { ::close(m_fd_); }}
+
 bool Buffer::ensure(std::size_t n)
 {
     if (m_end_ - m_pos_ >= n) { return true; }
@@ -31,7 +42,7 @@ bool Buffer::ensure(std::size_t n)
 
         m_end_ += static_cast<std::size_t>(got);
     }
-
+    
     return m_end_ - m_pos_ >= n;
 }
 
