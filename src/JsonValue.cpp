@@ -1,11 +1,38 @@
 #include "JsonValue.hpp"
 #include <stdexcept>
+
+static std::string escapeString(std::string str) {
+    std::string out;
+    out.reserve(str.size() + 2); // Reserve space for the string and quotes
+    out.push_back('"');
+    for (unsigned char c : str) {
+        switch (c) {
+            case '"': out += "\\\""; break;
+            case '\\': out += "\\\\"; break;
+            case '\b': out += "\\b"; break;
+            case '\f': out += "\\f"; break;
+            case '\n': out += "\\n"; break;
+            case '\r': out += "\\r"; break;
+            case '\t': out += "\\t"; break;
+            default:
+                if (c < 0x20 || c > 0x7E) {
+                    char buffer[7];
+                    snprintf(buffer, sizeof(buffer), "\\u%04x", c);
+                    out += buffer;
+                } else {
+                    out.push_back(c);
+                }
+        }
+    }
+    out.push_back('"');
+    return out;
+}
    
 struct overloaded {
     std::string operator()(std::nullptr_t) const { return std::string("null"); }
     std::string operator()(bool b) const { return b ? "true" : "false"; }
     std::string operator()(double d) const { return std::to_string(d); }
-    std::string operator()(const std::string& str) const { return "\"" + str + "\""; }
+    std::string operator()(const std::string& str) const {  return escapeString(str);}
     std::string operator()(const JsonArray& arr) const {
         std::string result = "[";
         for (size_t i = 0; i < arr.size(); ++i) {

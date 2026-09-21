@@ -1,5 +1,6 @@
 #include "JsonParser.hpp"
 #include <charconv>
+#include <system_error>
 
 void JsonParser::advance()
 {
@@ -40,8 +41,15 @@ JsonValue JsonParser::parseValue()
 
         case TokenType::m_number: 
         {
-            double value;
-            value = std::from_chars(m_current.m_value);
+            double value{};
+            const char* first = m_current.m_value.data();
+            const char* last = first + m_current.m_value.size();
+            const auto [ptr, ec] = std::from_chars(first, last, value);
+
+            if (ec != std::errc{} || ptr != last) {
+                this->error("Invalid number");
+            }
+
             advance();
             return JsonValue(value);
         }
@@ -73,7 +81,9 @@ JsonValue JsonParser::parseValue()
                 this->error("Maximum nesting depth exceeded");
             }
             m_depth++;
-            return ParseObj();
+            JsonValue result = ParseObj();
+            m_depth--;
+            return result;
         }
 
 
@@ -82,7 +92,9 @@ JsonValue JsonParser::parseValue()
                 this->error("Maximum nesting depth exceeded");
             }
             m_depth++;
-            return ParseArray();
+            JsonValue result = ParseArray();
+            m_depth--;
+            return result;
         }
 
 

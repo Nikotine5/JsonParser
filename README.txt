@@ -26,7 +26,7 @@ and running the parser against ~50 inputs, not by reading the code.
 1. BUILD BLOCKERS  (fix these first - the project does not compile)
 -------------------------------------------------------------------------------
 
-[ ] from_chars is called with the wrong signature.
+[x] from_chars is called with the wrong signature.
     src/JsonParser.cpp:44 reads
         value = std::from_chars(m_current.m_value);
     from_chars takes (const char* first, const char* last, T& value) and
@@ -50,7 +50,7 @@ and running the parser against ~50 inputs, not by reading the code.
 2. CONFIRMED CORRECTNESS BUGS  (all VERIFIED by running)
 -------------------------------------------------------------------------------
 
-[ ] m_depth is never decremented, so valid JSON is rejected.
+[x] m_depth is never decremented, so valid JSON is rejected.
     src/JsonParser.cpp:71-86 increments m_depth on '{' and '[' but never
     decrements on the way back out. The counter therefore measures TOTAL
     CONTAINERS IN THE DOCUMENT, not nesting depth.
